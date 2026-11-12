@@ -1,0 +1,21 @@
+
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build and Run MazeSolver",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "g++ -std=c++17 -Wall -Wextra -pedantic main.cpp solver.cpp generator.cpp -o MazeSolver && ./MazeSolver"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      }
+    }
+  ]
+}
