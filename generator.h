@@ -5,11 +5,12 @@
 #include <stack>
 #include <utility>  // for pair
 #include <string>
+
 class Generator {
 public:
     Generator(int rows, int cols);
 
-    void generateMaze(int startX, int startY);
+    void generateMaze(int startX = 1, int startY = 1);
     void printMaze();
     void saveMazeToFile(const std::string& filename);
     std::vector<std::vector<char>> maze;  // Public so users can access maze directly if needed

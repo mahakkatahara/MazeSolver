@@ -1,141 +1,184 @@
 #include "solver.h"
 #include "generator.h"
-#include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <limits>
+#include <cstdlib>
+
+using namespace std;
+
+// Helper to safely clear bad cin state and flush input line
+void clearCin() {
+    cin.clear();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
+
+// Helper to display available maze files in maze/ directory
+void listAvailableMazes() {
+    cout << "\n--- Available Mazes in 'maze/' directory ---\n";
+#ifdef _WIN32
+    system("dir /b maze");
+#else
+    system("ls maze");
+#endif
+    cout << "--------------------------------------------\n";
+}
+
 int main() {
-    cout<<"\t\t<<<<<\tMazeSolver\t>>>>>"<< endl;
-    cout<<"\tEnter 1 : Run test on a saved maze"<<endl;
-    cout<<"\tEnter 2 : Generate a maze and then run the test."<<endl;
-    int choice;
-    cout<<"Choice : ";
-    cin>>choice;
-    cout<<"----------------------------------------------------------------"<<endl;
-    if(choice == 1){
-            #ifdef _WIN32
-            system("dir maze");
-            #else
-                system("ls maze");
-                cout<<"This is a linux/Mac System!"<<endl;
-            #endif
-            cout<<"----------------------------------------------------------------"<<endl;
-            // code to render the maze
-            int render;
-            cout<<"Press 1 to render any maze else anything to continue : ";
-            cin>>render;
-            if(render == 1)
-            {
-                do
-                {
-                    string path;
-                    cout<<"Enter the path of maze file to render(such as maze/maze1.txt): ";
-                    cin>>path;
-                    ifstream file(path);
-                // if(file.bad())
-                // {
-                //     cout<<"Wrong file input!";
-                //     return 1;
-                // }
-                    if (!file.is_open()) {  // Check if file opened successfully
-                    std::cout << "Failed to open the file!" << std::endl;
-                    return 1;
-                    }
-                    std::string line;
-                    while (std::getline(file, line)) {  // Read line by line
-                    std::cout << line << std::endl;  // Print each line
-                    }
+    Solver solver;
+    bool hasMaze = false;
 
-                    file.close();
-                    cout<<"Press 1 to render any maze else anything to continue : ";
-                    cin>>render;
-                }while(render==1);
-            }
-        string path;
-        cout<<"Enter the path of maze file to operate on (such as maze/maze1.txt): ";
-        cin>>path;
-        ifstream file(path);
-        if(file.bad())
-            {
-                cout<<"Wrong file input!";
-                return 1;
-            }
-        int t1,t2;
-        cout<<"Enter the coordinates of start(s) position index [row,col] : ";
-        cin>>t1>>t2;
-    Solver s;
-
-    //string filename = "maze/maze5.txt";
-    string filename = path;
-    if (!s.loadMaze(filename)) {
-        cout<<"Error in opening the file!";
-        return 1;
-    }
-    s.mazeCopy = s.maze;
-        
-    s.estimateBFSMemoryUsage(s.ROWS, s.COLS);
-    size_t memBefore = s.getCurrentMemoryUsage();
-    auto startTime = chrono::high_resolution_clock::now();
-    s.bfs(t1,t2);
-    auto endTime = chrono::high_resolution_clock::now();
-    size_t memAfter = s.getCurrentMemoryUsage();
-    s.estimateBFSMemoryUsage(s.ROWS, s.COLS);
-    cout << "Memory used (system reported): " << (memAfter - memBefore) << " KB\n";
-    auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
-    cout << "Execution Time: " << duration << " ms" << endl;
-    cout << "Original Maze:\n";
-    s.printMaze(s.mazeCopy);
-    cout << "-----------------------------\n";
+    // Default load maze1.txt if present for immediate convenience
+    if (solver.loadMaze("maze/maze1.txt")) {
+        hasMaze = true;
     }
 
+    int choice = 0;
 
-    else if(choice == 2){
-    srand(time(0));
-
-    cout<<"Enter the height and width of maze : " ;
-    int w,h;
-    cin>>h>>w;
-    Generator g(h,w);
-    
-    g.generateMaze(1,1);
-    g.printMaze();
-    g.saveMazeToFile("maze/RecentlyGeneratedMaze.txt");
-    
-    cout<<"Enter 1 to run the test else anything to continue : ";
-    int x;
-    cin>>x;
-    if(x!=1)
-        {
-            cout<<"<<<<<<<<<<<<<<<Program Terminates>>>>>>>>>>>>>>>";
-            return 0;
+    while (choice != 9) {
+        cout << "\n====================================================\n";
+        cout << "   MAZESOLVER - PATHFINDING VISUALIZER & BENCHMARK  \n";
+        cout << "====================================================\n";
+        if (hasMaze) {
+            int sx, sy, ex, ey;
+            solver.findStartAndEnd(sx, sy, ex, ey);
+            cout << " [Status: Maze loaded (" << solver.ROWS << "x" << solver.COLS 
+                 << ") | Start: (" << sx << "," << sy << ") | End: (" << ex << "," << ey << ")]\n";
+        } else {
+            cout << " [Status: No maze loaded]\n";
         }
-    Solver s;
+        cout << "----------------------------------------------------\n";
+        cout << " 1. Load an existing maze from file\n";
+        cout << " 2. Generate a random maze\n";
+        cout << " 3. Display current maze\n";
+        cout << " 4. Solve using Breadth First Search (BFS)\n";
+        cout << " 5. Solve using Depth First Search (DFS)\n";
+        cout << " 6. Solve using Dijkstra's Algorithm\n";
+        cout << " 7. Solve using A* Algorithm\n";
+        cout << " 8. Compare all four algorithms (Benchmark)\n";
+        cout << " 9. Exit\n";
+        cout << "----------------------------------------------------\n";
+        cout << "Enter your choice (1-9): ";
 
-    //string filename = "maze/maze5.txt";
-    string filename = "maze/RecentlyGeneratedMaze.txt";
-    if (!s.loadMaze(filename)) {
-        cout<<"Error in loading the maze!";
-        return 1;
+        if (!(cin >> choice)) {
+            clearCin();
+            cout << "\n[!] Invalid input! Please enter a number from 1 to 9.\n";
+            continue;
+        }
+
+        switch (choice) {
+            case 1: { // Load existing maze
+                listAvailableMazes();
+                cout << "Enter the path of the maze file (e.g., maze/maze1.txt): ";
+                string filepath;
+                cin >> filepath;
+
+                if (solver.loadMaze(filepath)) {
+                    hasMaze = true;
+                    cout << "\n[✓] Maze successfully loaded from " << filepath << "!\n";
+                    cout << "Dimensions: " << solver.ROWS << " rows x " << solver.COLS << " columns\n";
+                    solver.printMaze(solver.mazeCopy);
+                } else {
+                    cout << "\n[!] Failed to load maze. Check the file path and format.\n";
+                }
+                break;
+            }
+
+            case 2: { // Generate random maze
+                int height, width;
+                cout << "\nEnter maze dimensions (Height Width, minimum 5 5): ";
+                if (!(cin >> height >> width)) {
+                    clearCin();
+                    cout << "[!] Invalid dimension input! Dimensions must be integers.\n";
+                    break;
+                }
+
+                if (height < 5 || width < 5) {
+                    cout << "[!] Dimensions too small. Adjusting to minimum 5x5 for wall integrity.\n";
+                    if (height < 5) height = 5;
+                    if (width < 5) width = 5;
+                }
+
+                Generator gen(height, width);
+                gen.generateMaze(1, 1);
+                
+                string outPath = "maze/RecentlyGeneratedMaze.txt";
+                gen.saveMazeToFile(outPath);
+
+                if (solver.loadMaze(outPath)) {
+                    hasMaze = true;
+                    cout << "\n[✓] New random maze generated and loaded!\n";
+                    solver.printMaze(solver.mazeCopy);
+                }
+                break;
+            }
+
+            case 3: { // Display maze
+                if (!hasMaze) {
+                    cout << "\n[!] No maze loaded yet. Please load or generate a maze first.\n";
+                } else {
+                    cout << "\n--- Current Original Maze ---\n";
+                    solver.printMaze(solver.mazeCopy);
+                }
+                break;
+            }
+
+            case 4: { // BFS
+                if (!hasMaze) {
+                    cout << "\n[!] Please load or generate a maze first (Option 1 or 2).\n";
+                } else {
+                    solver.solveBFS(true);
+                }
+                break;
+            }
+
+            case 5: { // DFS
+                if (!hasMaze) {
+                    cout << "\n[!] Please load or generate a maze first (Option 1 or 2).\n";
+                } else {
+                    solver.solveDFS(true);
+                }
+                break;
+            }
+
+            case 6: { // Dijkstra
+                if (!hasMaze) {
+                    cout << "\n[!] Please load or generate a maze first (Option 1 or 2).\n";
+                } else {
+                    solver.solveDijkstra(true);
+                }
+                break;
+            }
+
+            case 7: { // A*
+                if (!hasMaze) {
+                    cout << "\n[!] Please load or generate a maze first (Option 1 or 2).\n";
+                } else {
+                    solver.solveAStar(true);
+                }
+                break;
+            }
+
+            case 8: { // Compare all 4
+                if (!hasMaze) {
+                    cout << "\n[!] Please load or generate a maze first (Option 1 or 2).\n";
+                } else {
+                    solver.compareAll();
+                }
+                break;
+            }
+
+            case 9: { // Exit
+                cout << "\nThank you for using MazeSolver! Exiting program...\n";
+                break;
+            }
+
+            default: {
+                cout << "\n[!] Invalid choice: " << choice << ". Please select between 1 and 9.\n";
+                break;
+            }
+        }
     }
-    s.maze = g.maze;
-    s.mazeCopy = s.maze;
-        
-    s.estimateBFSMemoryUsage(s.ROWS, s.COLS);
-    size_t memBefore = s.getCurrentMemoryUsage();
-    auto startTime = chrono::high_resolution_clock::now();
-    s.bfs(1,1);
-    auto endTime = chrono::high_resolution_clock::now();
-    size_t memAfter = s.getCurrentMemoryUsage();
-    s.estimateBFSMemoryUsage(s.ROWS, s.COLS);
-    cout << "Memory used (system reported): " << (memAfter - memBefore) << " KB\n";
-    auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
-    cout << "Execution Time: " << duration << " ms" << endl;
-    cout << "Original Maze:\n";
-    s.printMaze(s.mazeCopy);
-    cout << "-----------------------------\n";
-    }
-    else
-    {
-        cout<<"Wrong input, try again!!";
-    }
+
     return 0;
 }

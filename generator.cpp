@@ -2,9 +2,16 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
+#include <fstream>
+
 using namespace std;
+
 Generator::Generator(int rows, int cols) {
-    // Ensure odd dimensions for proper maze generation
+    // Ensure minimum dimensions of at least 5x5 for outer borders and corridors
+    if (rows < 5) rows = 5;
+    if (cols < 5) cols = 5;
+
+    // Ensure odd dimensions for proper maze generation with walls
     ROWS = (rows % 2 == 0) ? rows + 1 : rows;
     COLS = (cols % 2 == 0) ? cols + 1 : cols;
 
@@ -16,6 +23,12 @@ bool Generator::isValid(int x, int y) {
 }
 
 void Generator::generateMaze(int startX, int startY) {
+    // Clamp start coordinates to valid odd interior positions
+    if (startX <= 0 || startX >= ROWS - 1) startX = 1;
+    if (startY <= 0 || startY >= COLS - 1) startY = 1;
+    if (startX % 2 == 0) startX++;
+    if (startY % 2 == 0) startY++;
+
     std::random_device rd;
     std::mt19937 g(rd());
 
@@ -56,10 +69,13 @@ void Generator::generateMaze(int startX, int startY) {
         }
     }
 
+    // Preserve 'S' at start
+    maze[startX][startY] = 'S';
+
     // Mark End Point at bottom-right open cell
     for (int i = ROWS - 2; i >= 0; --i) {
         for (int j = COLS - 2; j >= 0; --j) {
-            if (maze[i][j] == ' ') {
+            if (maze[i][j] == ' ' && !(i == startX && j == startY)) {
                 maze[i][j] = 'E';
                 return;
             }
@@ -69,12 +85,19 @@ void Generator::generateMaze(int startX, int startY) {
 
 void Generator::printMaze() {
     for (const auto& row : maze) {
-        for (char cell : row)
-            std::cout << cell;
+        for (char cell : row) {
+            if (cell == 'S')
+                std::cout << "\033[1;34mS\033[0m ";
+            else if (cell == 'E')
+                std::cout << "\033[1;31mE\033[0m ";
+            else if (cell == '#')
+                std::cout << "# ";
+            else
+                std::cout << cell << " ";
+        }
         std::cout << '\n';
     }
 }
-#include <fstream>  // for file operations
 
 void Generator::saveMazeToFile(const std::string& filename) {
     std::ofstream outFile(filename);
@@ -94,20 +117,3 @@ void Generator::saveMazeToFile(const std::string& filename) {
     outFile.close();
     std::cout << "Maze saved successfully to " << filename << "\n";
 }
-
-
-// int main() {
-//     int rows, cols;
-//     cout << "Enter Maze Dimensions (rows cols): ";
-//     cin >> rows >> cols;
-
-//     Generator gen(rows, cols);
-
-//     // Start always at (1, 1)
-//     gen.generateMaze(1, 1);
-
-//     cout << "\nGenerated Maze:\n";
-//     gen.printMaze();
-
-//     return 0;
-// }
